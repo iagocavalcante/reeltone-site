@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reeltone — Support</title>
+<meta name="description" content="How to connect Reeltone to your Jellyfin server, FAQ, and how to report bugs.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#0B0B0B"/><g fill="none" stroke="#A9BE8E" stroke-width="4"><circle cx="32" cy="46" r="20" stroke-dasharray="1.5 5"/><circle cx="68" cy="46" r="20" stroke-dasharray="1.5 5"/></g><g stroke="#A9BE8E" stroke-width="5" stroke-linecap="round"><path d="M32 32V46M32 46 44 55M32 46 20 55"/><path d="M68 32V46M68 46 80 55M68 46 56 55"/></g><g fill="#A9BE8E"><circle cx="32" cy="46" r="5"/><circle cx="68" cy="46" r="5"/></g><path d="M32 70H68" stroke="#A9BE8E" stroke-width="3" stroke-linecap="round"/></svg>
+    <div><h1>REELTONE</h1><p class="tag">Support</p></div>
+  </div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="support.html" aria-current="page">Support</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+</header>
+
+<p>Reeltone is a native iPhone music player for your own
+<a href="https://jellyfin.org">Jellyfin</a> server: background playback,
+offline downloads, lock-screen controls, AirPlay, and synced lyrics.</p>
+
+<h2>Getting started</h2>
+<ul>
+  <li>You need a <strong>Jellyfin server</strong> (free, self-hosted — see jellyfin.org) and an account on it. For lyrics, Jellyfin <strong>10.9+</strong> is recommended.</li>
+  <li>Open Reeltone and enter your server address (e.g. <code>http://192.168.1.10:8096</code> or <code>https://media.example.com</code>). Tap Connect.</li>
+  <li>Sign in with your Jellyfin username and password.</li>
+  <li>Browse the Library tab, tap a track to play, and tap the mini-player to open the full player.</li>
+</ul>
+
+<h2>FAQ</h2>
+<h3>Does music keep playing when I lock my phone?</h3>
+<p>Yes — true background audio is the whole point. Playback continues when you leave the app or lock the screen, with controls on the lock screen and in Control Center.</p>
+<h3>Where do lyrics come from?</h3>
+<p>First from your Jellyfin server (embedded tags, <code>.lrc</code> files, or a plugin such as LrcLib). If the server has none, Reeltone fetches them from the public LRCLIB service and shows a small "LYRICS: LRCLIB" note. Install the LrcLib plugin on your server for the best coverage.</p>
+<h3>Can I listen offline?</h3>
+<p>Yes. Tap the download button on a track or album, then play it later with no connection.</p>
+<h3>My server is plain HTTP / on my LAN / on a VPN. Does that work?</h3>
+<p>Yes. Reeltone supports plain-HTTP servers, local IP addresses, <code>.local</code> names, and VPN/tailnet hosts.</p>
+<h3>Is my data sent anywhere?</h3>
+<p>No. Reeltone has no servers of its own and collects nothing. See the <a href="privacy.html">Privacy Policy</a>.</p>
+<h3>Is this an official Jellyfin app?</h3>
+<p>No. Reeltone is an independent client, not affiliated with or endorsed by the Jellyfin project.</p>
+
+<h2>Report a bug or request a feature</h2>
+<p><a class="cta" href="https://github.com/iagocavalcante/reeltone-site/issues">Open an issue on GitHub</a></p>
+
+<footer>Reeltone is an independent client, not affiliated with the Jellyfin project. &copy; 2026.</footer>
+</div>
+</body>
+</html>

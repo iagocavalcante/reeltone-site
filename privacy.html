@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reeltone — Privacy Policy</title>
+<meta name="description" content="Reeltone collects nothing. No servers, no analytics, no tracking. Everything stays on your device.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="#0B0B0B"/><g fill="none" stroke="#A9BE8E" stroke-width="4"><circle cx="32" cy="46" r="20" stroke-dasharray="1.5 5"/><circle cx="68" cy="46" r="20" stroke-dasharray="1.5 5"/></g><g stroke="#A9BE8E" stroke-width="5" stroke-linecap="round"><path d="M32 32V46M32 46 44 55M32 46 20 55"/><path d="M68 32V46M68 46 80 55M68 46 56 55"/></g><g fill="#A9BE8E"><circle cx="32" cy="46" r="5"/><circle cx="68" cy="46" r="5"/></g><path d="M32 70H68" stroke="#A9BE8E" stroke-width="3" stroke-linecap="round"/></svg>
+    <div><h1>REELTONE</h1><p class="tag">Privacy Policy</p></div>
+  </div>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="support.html">Support</a>
+    <a href="privacy.html" aria-current="page">Privacy</a>
+  </nav>
+</header>
+
+<p class="updated">Last updated: 20 July 2026</p>
+
+<p>Reeltone is a music player for your own <a href="https://jellyfin.org">Jellyfin</a>
+media server. It is designed to collect nothing about you. We (the developer)
+run no servers and receive no data from the app — there is no account with us,
+no analytics, no advertising, and no tracking.</p>
+
+<h2>What the app stores, and where</h2>
+<p>Everything Reeltone stores lives <strong>on your device only</strong>:</p>
+<ul>
+  <li><strong>Your server address and login token</strong> — saved in the iOS Keychain so you stay signed in. Used only to talk to your Jellyfin server.</li>
+  <li><strong>A cache of your library</strong> (names and artwork) — so browsing is fast and works offline.</li>
+  <li><strong>Downloaded music</strong> — files you choose to download, kept in the app's private storage.</li>
+</ul>
+<p>None of this is transmitted to us. Deleting the app removes all of it.</p>
+
+<h2>Who the app talks to</h2>
+<ul>
+  <li><strong>Your Jellyfin server.</strong> All browsing, streaming, and playback happen against the server address you enter. Playback progress is reported back to <em>your</em> server (standard Jellyfin behavior) — your data on your server.</li>
+  <li><strong>LRCLIB (lrclib.net), only for lyrics, only as a fallback.</strong> When you open lyrics and your server has none, the app asks the public LRCLIB service for matching lyrics using the track's <strong>title, artist, album, and duration</strong>. No account, no device identifier, nothing about <em>you</em> — only the song's metadata. If you never open lyrics, the app never contacts LRCLIB.</li>
+</ul>
+<p>The app contacts no other services.</p>
+
+<h2>Data we collect</h2>
+<p>None. We have no servers and receive no data. Under Apple's privacy labels,
+Reeltone is <strong>"Data Not Collected."</strong></p>
+
+<h2>Permissions</h2>
+<ul><li><strong>Local Network</strong> — so the app can reach a Jellyfin server on your local network. Not used for anything else.</li></ul>
+
+<h2>Children</h2>
+<p>Reeltone does not knowingly collect any data from anyone, including children.</p>
+
+<h2>Changes</h2>
+<p>If this policy changes, the date above changes and the new version is posted at this URL.</p>
+
+<h2>Contact</h2>
+<p>Questions: <a href="https://github.com/iagocavalcante/reeltone-site/issues">open an issue on GitHub</a>.</p>
+
+<footer>Reeltone is an independent client, not affiliated with the Jellyfin project. &copy; 2026.</footer>
+</div>
+</body>
+</html>
