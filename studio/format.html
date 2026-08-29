@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reeltone Skin Format Reference</title>
+<meta name="description" content="Reference for building safe, compatible Reeltone classic themes and shaped macOS skins.">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap reference">
+<header>
+  <p class="eyebrow">Reeltone workshop // specification</p>
+  <nav aria-label="Skin tools">
+    <a href="../skins.html">Workshop</a>
+    <a href="classic.html">Classic builder</a>
+    <a href="shaped.html">Shaped studio</a>
+    <a href="schema-v2.json">JSON schema</a>
+  </nav>
+</header>
+<main>
+<h1>The .reeltone skin format</h1>
+<p>A <code>.reeltone</code> file is a plain ZIP archive containing a <code>skin.json</code> manifest and the local fonts or images it references. Version 1 themes the fixed Reeltone deck. Version 2 can also define a shaped macOS window, positioned player regions, animation frames, and attached panels.</p>
+<p class="reference-note"><strong>Skins are declarative data.</strong> They cannot contain executable code or change what an app action does.</p>
+
+<h2 id="package">Package rules</h2>
+<pre>my-player.reeltone
+├── skin.json       required at archive root
+├── chassis.png     optional artwork
+├── play-down.png   optional state artwork
+└── Display.ttf     optional font</pre>
+<ul>
+  <li>The uncompressed archive must be 64 MiB or smaller.</li>
+  <li>Paths must stay inside the archive. Symlinks, absolute paths, and <code>../</code> traversal are rejected.</li>
+  <li>Image dimensions are capped at 2048 × 2048, with a 64 MiB total decoded-image budget.</li>
+  <li>IDs must be stable and filesystem-safe. Reverse-DNS form such as <code>com.example.my-player</code> is recommended.</li>
+</ul>
+
+<h2 id="manifest">Minimum manifest</h2>
+<pre>{
+  "formatVersion": 1,
+  "id": "com.example.my-player",
+  "name": "My Player"
+}</pre>
+<p>Only <code>formatVersion</code>, <code>id</code>, and <code>name</code> are required. Missing visual fields fall back to Reeltone's built-in LCD theme.</p>
+
+<h2 id="colors">Colors and fonts</h2>
+<table>
+  <thead><tr><th>Field</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td><code>colors.screen</code></td><td>Main LCD background.</td></tr>
+    <tr><td><code>colors.ink</code></td><td>Primary foreground and text.</td></tr>
+    <tr><td><code>colors.inkDim</code></td><td>De-emphasized foreground; defaults to the skin's ink at 35% opacity.</td></tr>
+    <tr><td><code>colors.panel</code></td><td>Chrome outside the main screen.</td></tr>
+    <tr><td><code>colors.panelText</code></td><td>Foreground shown on panel chrome.</td></tr>
+  </tbody>
+</table>
+<p>Colors use <code>#RRGGBB</code> or <code>#RRGGBBAA</code>. Aim for at least 4.5:1 contrast between ink/screen and panelText/panel.</p>
+<p>Each of <code>fonts.display</code>, <code>fonts.digits</code>, <code>fonts.body</code>, and <code>fonts.bodyBold</code> may reference a Reeltone built-in PostScript name or a bundled font file and its exact PostScript name.</p>
+
+<h2 id="sprites">Classic sprites</h2>
+<p>Version 1 can replace artwork while preserving the standard deck geometry.</p>
+<table>
+  <thead><tr><th>Slot</th><th>Rendered as</th></tr></thead>
+  <tbody>
+    <tr><td><code>reelRim</code></td><td>Resizable reel perimeter.</td></tr>
+    <tr><td><code>reelSpokes</code></td><td>Resizable rotating reel interior.</td></tr>
+    <tr><td><code>background</code></td><td>Screen fill; aspect-fill is usually best.</td></tr>
+    <tr><td><code>keyNormal</code></td><td>Resizable transport key at rest.</td></tr>
+    <tr><td><code>keyPressed</code></td><td>Resizable transport key while pressed.</td></tr>
+  </tbody>
+</table>
+<pre>"sprites": {
+  "background": { "file": "background.png", "mode": "fill" },
+  "keyNormal": {
+    "file": "key.png",
+    "capInsets": [6, 6, 6, 6],
+    "mode": "stretch"
+  }
+}</pre>
+
+<h2 id="shaped-skins">Version 2: shaped macOS skins</h2>
+<p>A shaped skin adds <code>window</code>, <code>regions</code>, and optionally <code>panels</code>. The chassis image's natural pixel dimensions define the fixed window coordinate space. Region rectangles use <code>[x, y, width, height]</code> from the image's top-left origin.</p>
+<pre>{
+  "formatVersion": 2,
+  "id": "com.example.shaped-player",
+  "name": "My Shaped Player",
+  "window": {
+    "size": [640, 240],
+    "art": { "normal": "chassis.png" }
+  },
+  "regions": [
+    { "component": "artwork", "rect": [34, 30, 128, 128] },
+    { "component": "title", "rect": [180, 30, 330, 28], "marquee": true },
+    { "component": "playPause", "rect": [78, 176, 54, 34] },
+    { "component": "seek", "rect": [205, 182, 278, 18] }
+  ]
+}</pre>
+<p>Regions are drawn and hit-tested in array order; later regions sit above earlier ones. Available components include playback transport, seek and volume controls, text readouts, artwork, visualiser, equaliser, track list, library, window controls, decorations, and panel toggles.</p>
+<p>Interactive regions can provide normal, hover, pressed, playing, playing-hover, and playing-pressed artwork. Frame sequences may animate continuously or only during playback. Keep every state aligned to the exact same rectangle and preserve transparent pixels around the control to avoid visible chassis seams.</p>
+<p>Use the local <a href="schema-v2.json">v2 JSON schema</a> as the machine-readable contract for component names, properties, and allowed values.</p>
+
+<h2 id="font-licensing">Artwork and font licensing</h2>
+<p>The manifest's optional <code>license</code> field describes your package metadata and artwork; it does not automatically license a font you bundle. Include the font's own license file when its terms require it. Use original artwork or assets you have permission to redistribute—evoking a classic media-player era is different from copying a proprietary skin.</p>
+
+<h2 id="install">Test and install</h2>
+<ol>
+  <li>Export from the <a href="classic.html">Classic Theme Builder</a> or <a href="shaped.html">Shaped Skin Studio</a>.</li>
+  <li>In Reeltone, open Settings → Appearance → Import Skin.</li>
+  <li>Resolve every validation warning, preview the skin, and install it.</li>
+</ol>
+</main>
+<footer>Reeltone skin format version 2. Declarative, local, and designed for safe remixing. &copy; 2026.</footer>
+</div>
+</body>
+</html>

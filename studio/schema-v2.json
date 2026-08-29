@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reeltone.iagocavalcante.com/skins/schema-v2.json",
+  "title": "Reeltone skin manifest, formatVersion 2",
+  "description": "The frozen declarative contract for Reeltone v2 shaped skins. Unknown top-level fields remain allowed for forward-compatible minor additions.",
+  "type": "object",
+  "required": ["formatVersion", "id", "name"],
+  "properties": {
+    "formatVersion": { "const": 2 },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!\\.{1,2}$)[^/\\\\]+$"
+    },
+    "name": { "type": "string", "pattern": "\\S" },
+    "author": { "type": "string" },
+    "version": { "type": "string" },
+    "license": { "type": "string" },
+    "colors": { "$ref": "#/$defs/colors" },
+    "fonts": { "$ref": "#/$defs/fonts" },
+    "sprites": { "$ref": "#/$defs/sprites" },
+    "window": { "$ref": "#/$defs/window" },
+    "regions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/region" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["window"] },
+      "then": { "required": ["regions"] }
+    }
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$"
+    },
+    "resourcePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*(^|/)\\.\\.(/|$)).+$"
+    },
+    "size": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number", "exclusiveMinimum": 0 },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "rect": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "number", "minimum": 0 },
+        { "type": "number", "minimum": 0 },
+        { "type": "number", "exclusiveMinimum": 0 },
+        { "type": "number", "exclusiveMinimum": 0 }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "art": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "normal", "hover", "pressed",
+          "playing", "playingHover", "playingPressed"
+        ]
+      },
+      "additionalProperties": { "$ref": "#/$defs/resourcePath" }
+    },
+    "fontSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["builtin"],
+          "properties": {
+            "builtin": {
+              "enum": [
+                "DSEG14Classic-Regular",
+                "DSEG7Classic-Regular",
+                "Silkscreen-Regular",
+                "Silkscreen-Bold"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["file", "postScriptName"],
+          "properties": {
+            "file": { "$ref": "#/$defs/resourcePath" },
+            "postScriptName": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "colors": {
+      "type": "object",
+      "properties": {
+        "screen": { "$ref": "#/$defs/color" },
+        "ink": { "$ref": "#/$defs/color" },
+        "inkDim": { "$ref": "#/$defs/color" },
+        "panel": { "$ref": "#/$defs/color" },
+        "panelText": { "$ref": "#/$defs/color" }
+      },
+      "additionalProperties": true
+    },
+    "fonts": {
+      "type": "object",
+      "properties": {
+        "display": { "$ref": "#/$defs/fontSource" },
+        "digits": { "$ref": "#/$defs/fontSource" },
+        "body": { "$ref": "#/$defs/fontSource" },
+        "bodyBold": { "$ref": "#/$defs/fontSource" }
+      },
+      "additionalProperties": true
+    },
+    "sprite": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": { "$ref": "#/$defs/resourcePath" },
+        "capInsets": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0 },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "mode": { "enum": ["stretch", "tile"] }
+      },
+      "additionalProperties": true
+    },
+    "sprites": {
+      "type": "object",
+      "properties": {
+        "reelRim": { "$ref": "#/$defs/sprite" },
+        "reelSpokes": { "$ref": "#/$defs/sprite" },
+        "background": { "$ref": "#/$defs/sprite" },
+        "keyNormal": { "$ref": "#/$defs/sprite" },
+        "keyPressed": { "$ref": "#/$defs/sprite" }
+      },
+      "additionalProperties": true
+    },
+    "window": {
+      "type": "object",
+      "required": ["size", "art"],
+      "properties": {
+        "size": { "$ref": "#/$defs/size" },
+        "art": {
+          "allOf": [
+            { "$ref": "#/$defs/art" },
+            { "required": ["normal"] }
+          ]
+        },
+        "panels": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/panel" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "panel": {
+      "type": "object",
+      "required": ["size", "attach", "art"],
+      "properties": {
+        "size": { "$ref": "#/$defs/size" },
+        "attach": { "enum": ["left", "right", "top", "bottom"] },
+        "art": {
+          "allOf": [
+            { "$ref": "#/$defs/art" },
+            { "required": ["normal"] }
+          ]
+        },
+        "regions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/region" }
+        },
+        "visible": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "region": {
+      "type": "object",
+      "required": ["component", "rect"],
+      "properties": {
+        "component": {
+          "enum": [
+            "play", "pause", "playPause", "stop", "prev", "next",
+            "seek", "volume", "shuffle", "repeatMode",
+            "title", "elapsed", "duration", "artwork",
+            "trackList", "visualiser", "equaliser", "close", "minimise",
+            "togglePanel", "decoration", "library", "libraryBack"
+          ]
+        },
+        "rect": { "$ref": "#/$defs/rect" },
+        "size": { "type": "number", "exclusiveMinimum": 0 },
+        "color": { "$ref": "#/$defs/color" },
+        "highlightColor": { "$ref": "#/$defs/color" },
+        "align": { "enum": ["left", "center", "right"] },
+        "marquee": { "type": "boolean" },
+        "rowHeight": { "type": "number", "exclusiveMinimum": 0 },
+        "controlStyle": { "enum": ["bar", "slider", "knob"] },
+        "clipShape": { "enum": ["rectangle", "ellipse"] },
+        "art": { "$ref": "#/$defs/art" },
+        "frames": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/resourcePath" },
+          "minItems": 1
+        },
+        "fps": { "type": "number", "exclusiveMinimum": 0 },
+        "drivenBy": { "enum": ["playback", "always", "never"] },
+        "panel": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "component": { "const": "togglePanel" } }, "required": ["component"] },
+          "then": { "required": ["panel"] }
+        }
+      ],
+      "additionalProperties": true
+    }
+  }
+}

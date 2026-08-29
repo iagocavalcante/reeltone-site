@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reeltone Skin Editor</title>
+<meta name="description" content="Build a .reeltone skin in your browser — live preview, real contrast maths, exports a file Reeltone opens directly.">
+<style>
+  /* Variables copied verbatim from index.html so the editor reads as the same
+     site, not a bolted-on tool. Don't rename these — index.html and this page
+     are meant to stay visually identical where they overlap. */
+  :root {
+    --bezel: #0b0b0b;
+    --bezel-raised: #17170f;
+    --screen: #a9be8e;
+    --ink: #0b0b0b;
+    --ink-dim: rgba(11, 11, 11, 0.55);
+    --paper: #e9e4d6;
+    --paper-dim: #9a9385;
+    --accent: #a9be8e;
+    --accent-strong: #c7dba8;
+    --danger: #e0876a;
+    --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --radius: 10px;
+  }
+
+  /* The four faces Reeltone ships, loaded from the same files the app bundles
+     (copied into docs/skins/fonts/ — see that directory's presence in
+     this task's brief) so the live preview shows real segment/dot-matrix
+     type instead of a system-font stand-in. Family names are the exact
+     PostScript names the app expects in a `builtin` font source, so the same
+     string does double duty as CSS family name and manifest value. */
+  @font-face {
+    font-family: 'DSEG14Classic-Regular';
+    src: url('fonts/DSEG14Classic-Regular.ttf') format('truetype');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'DSEG7Classic-Regular';
+    src: url('fonts/DSEG7Classic-Regular.ttf') format('truetype');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Silkscreen-Regular';
+    src: url('fonts/Silkscreen-Regular.ttf') format('truetype');
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Silkscreen-Bold';
+    src: url('fonts/Silkscreen-Bold.ttf') format('truetype');
+    font-display: swap;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background: var(--bezel);
+    color: var(--paper);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent-strong); }
+  a:hover { color: var(--paper); }
+
+  code, pre, .mono { font-family: var(--mono); }
+
+  pre {
+    background: #05050a;
+    border: 1px solid #232316;
+    border-radius: var(--radius);
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  code {
+    background: #05050a;
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.9em;
+  }
+
+  pre code { background: none; padding: 0; }
+
+  header.hero {
+    background:
+      linear-gradient(180deg, rgba(169, 190, 142, 0.14), transparent 60%),
+      var(--bezel);
+    border-bottom: 1px solid #232316;
+    padding: clamp(1.5rem, 6vw, 3rem) 1.25rem 2rem;
+  }
+
+  .hero-inner { max-width: 1100px; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    color: var(--accent-strong);
+    margin: 0 0 0.75rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .lede {
+    font-size: clamp(0.95rem, 2.4vw, 1.1rem);
+    color: #cfd6c4;
+    max-width: 62ch;
+    margin: 0 0 1.25rem;
+  }
+
+  .callout {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    background: rgba(224, 135, 106, 0.12);
+    border: 1px solid rgba(224, 135, 106, 0.4);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    max-width: 62ch;
+    font-size: 0.9rem;
+  }
+
+  .callout strong { color: var(--danger); }
+
+  .callout.note {
+    background: rgba(169, 190, 142, 0.1);
+    border-color: rgba(169, 190, 142, 0.35);
+  }
+  .callout.note strong { color: var(--accent-strong); }
+
+  nav.toc {
+    max-width: 1100px;
+    margin: 1.5rem auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+
+  nav.toc a {
+    text-decoration: none;
+    border: 1px solid #2c2c1c;
+    border-radius: 999px;
+    padding: 0.4rem 0.85rem;
+    color: var(--paper);
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.25rem 4rem;
+  }
+
+  /* --- Editor layout: mobile-first single column with the preview pinned
+     above the fields (scrolling to compare would defeat the point of a
+     *live* preview), widening to a two-column grid with a sticky preview
+     rail once there's room for it. --- */
+  .editor-layout {
+    display: block;
+    margin-top: 1.5rem;
+  }
+
+  .preview-pane {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bezel);
+    padding: 0.75rem 0 1rem;
+    margin: 0 -1.25rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-bottom: 1px solid #232316;
+  }
+
+  .form-pane { padding-top: 1.5rem; }
+
+  @media (min-width: 860px) {
+    .editor-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    .preview-pane {
+      margin: 0;
+      padding: 0;
+      border-bottom: none;
+      top: 1.5rem;
+    }
+    .form-pane { padding-top: 0; }
+  }
+
+  section {
+    padding-top: clamp(2rem, 5vw, 3rem);
+    scroll-margin-top: 1rem;
+  }
+
+  section h2 {
+    font-size: clamp(1.25rem, 3.2vw, 1.6rem);
+    border-bottom: 1px solid #232316;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1.1rem;
+  }
+
+  p { color: #d8ddce; }
+  p.hint { font-size: 0.85rem; color: var(--paper-dim); margin: 0.35rem 0 0; }
+
+  /* --- Phone-frame preview mock --- */
+  .phone {
+    border: 10px solid #050505;
+    border-radius: 34px;
+    background: #050505;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
+  .phone .screen {
+    background: var(--pv-screen);
+    color: var(--pv-ink);
+    padding: 1.4rem 1.1rem 1.1rem;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .phone .screen .heading {
+    font-family: var(--pv-font-display), monospace;
+    font-size: 1.35rem;
+    letter-spacing: 0.02em;
+  }
+
+  .phone .screen .clock {
+    font-family: var(--pv-font-digits), monospace;
+    font-size: 2rem;
+    letter-spacing: 0.03em;
+  }
+
+  .phone .screen .row {
+    font-family: var(--pv-font-body), monospace;
+    font-size: 0.85rem;
+  }
+
+  .phone .screen .row.dim { color: var(--pv-ink-dim); }
+
+  .phone .panel {
+    background: var(--pv-panel);
+    color: var(--pv-panel-text);
+    font-family: var(--pv-font-body-bold), monospace;
+    font-size: 0.8rem;
+    padding: 0.75rem 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .contrast-readout {
+    margin-top: 0.85rem;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .contrast-readout .ratio { font-size: 1.1rem; font-weight: 600; }
+  .contrast-readout.pass .ratio { color: var(--accent-strong); }
+  .contrast-readout.warn .ratio { color: var(--danger); }
+  .contrast-readout .verdict { display: block; margin-top: 0.15rem; color: var(--paper-dim); font-size: 0.78rem; }
+
+  /* --- Form fields --- */
+  .field-group {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #1c1c12;
+  }
+  .field-group:last-child { border-bottom: none; }
+
+  .field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.1rem;
+  }
+
+  label {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--paper-dim);
+  }
+
+  input[type="text"], input[type="file"], select {
+    background: #05050a;
+    border: 1px solid #2c2c1c;
+    border-radius: 8px;
+    color: var(--paper);
+    padding: 0.6rem 0.7rem;
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  input[type="text"]:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  input[type="text"].invalid { border-color: var(--danger); }
+
+  .error-text {
+    color: var(--danger);
+    font-size: 0.8rem;
+    font-family: var(--mono);
+  }
+
+  .color-field {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .color-field input[type="color"] {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid #2c2c1c;
+    border-radius: 8px;
+    background: none;
+    flex: none;
+  }
+
+  .color-field input[type="text"] { flex: 1; }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    flex: none;
+  }
+
+  .checkbox-row label { text-transform: none; font-size: 0.85rem; letter-spacing: normal; }
+
+  .derived-note {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--paper-dim);
+    margin-top: 0.3rem;
+  }
+
+  .font-slot {
+    border: 1px solid #232316;
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .font-slot h3 {
+    margin: 0 0 0.7rem;
+    font-size: 0.95rem;
+    color: var(--accent-strong);
+    font-family: var(--mono);
+  }
+
+  .font-slot-choice {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .font-slot-choice label {
+    text-transform: none;
+    letter-spacing: normal;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    color: var(--paper);
+  }
+
+  .font-slot-choice input[type="radio"] { width: 20px; height: 20px; }
+
+  .psname-readout {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent-strong);
+    margin-top: 0.4rem;
+    word-break: break-all;
+  }
+
+  button {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    min-height: 48px;
+    padding: 0.7rem 1.4rem;
+    border-radius: 999px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #0a0f06;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:hover { background: var(--accent-strong); }
+  button:disabled {
+    background: transparent;
+    color: var(--paper-dim);
+    border-color: #2c2c1c;
+    cursor: not-allowed;
+  }
+
+  .export-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 1rem;
+  }
+
+  .export-status {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--paper-dim);
+  }
+  .export-status.ok { color: var(--accent-strong); }
+  .export-status.err { color: var(--danger); }
+
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+    color: var(--paper-dim);
+    font-size: 0.85rem;
+    border-top: 1px solid #232316;
+  }
+
+  footer a { color: var(--paper-dim); }
+
+  @media (prefers-color-scheme: light) {
+    /* This site commits to one dark, LCD-inspired look regardless of system
+       theme, same as index.html — see that file's identical no-op block. */
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">Reeltone · Skin Editor</p>
+    <h1>Build a skin, watch it live, export a <code>.reeltone</code>.</h1>
+    <p class="lede">
+      Change colors and fonts below and the phone mock updates immediately.
+      When it looks right, tap Export, save the file to Files, and open it
+      straight into Reeltone — no zipping, no renaming, nothing to get wrong.
+    </p>
+    <div class="callout note">
+      <span>ℹ️</span>
+      <span><strong>Classic layout editor.</strong> Sprites (bitmap art for
+      the tape reel, background, and transport keys) aren't editable here —
+      see <a href="format.html#sprites">the sprites reference</a> to
+      hand-author those into your exported file. For alpha-shaped macOS
+      windows, positioned controls, animations, and docked panels, use the
+      <a href="shaped.html">v2 Shaped Skin Studio</a>.</span>
+    </div>
+  </div>
+  <nav class="toc">
+    <a href="../skins.html">← Skin workshop</a>
+    <a href="shaped.html">Shaped v2 studio</a>
+    <a href="#metadata">Metadata</a>
+    <a href="#colors">Colors</a>
+    <a href="#fonts">Fonts</a>
+    <a href="#export">Export</a>
+  </nav>
+</header>
+
+<main>
+  <div class="editor-layout">
+
+    <div class="preview-pane">
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <span class="heading" id="pv-heading">REELTONE</span>
+          <span class="clock" id="pv-clock">12:04</span>
+          <span class="row" id="pv-row-title">Now Playing — Track Title</span>
+          <span class="row dim" id="pv-row-sub">Artist · Album</span>
+        </div>
+        <div class="panel">
+          <span id="pv-panel-left">▶ PLAYING</span>
+          <span id="pv-panel-right" class="mono">2:14 / 3:40</span>
+        </div>
+      </div>
+      <div class="contrast-readout" id="contrast-readout">
+        <span class="ratio" id="contrast-ratio">—</span>
+        <span class="verdict" id="contrast-verdict">ink : screen contrast</span>
+      </div>
+    </div>
+
+    <div class="form-pane">
+
+      <section id="metadata">
+        <h2>Metadata</h2>
+        <div class="field-group">
+          <div class="field-row">
+            <label for="f-id">id</label>
+            <input type="text" id="f-id" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <span class="error-text" id="f-id-error" hidden></span>
+            <span class="hint">Becomes the install directory name. No <code>/</code>, no <code>\</code>, not <code>.</code> or <code>..</code>. Reverse-DNS style is conventional: <code>com.you.skin-name</code>.</span>
+          </div>
+          <div class="field-row">
+            <label for="f-name">name</label>
+            <input type="text" id="f-name">
+            <span class="hint">What you'll see in Reeltone's skin list.</span>
+          </div>
+          <div class="field-row">
+            <label for="f-author">author (optional)</label>
+            <input type="text" id="f-author">
+          </div>
+          <div class="field-row">
+            <label for="f-version">version (optional)</label>
+            <input type="text" id="f-version">
+          </div>
+          <div class="field-row">
+            <label for="f-license">license (optional)</label>
+            <input type="text" id="f-license" placeholder="e.g. CC0-1.0">
+            <span class="hint">Informational only — Reeltone doesn't parse or enforce it. Covers your <code>skin.json</code>/colors, not any font you bundle — see <a href="format.html#font-licensing">font licensing</a>.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="colors">
+        <h2>Colors</h2>
+        <p class="hint" style="margin-bottom:1rem;">
+          <code>#RRGGBB</code> or <code>#RRGGBBAA</code> only — the picker
+          can't express alpha, so the hex field next to it is the source of
+          truth; edit it directly for a translucent color.
+        </p>
+        <div class="field-group" id="color-fields"></div>
+      </section>
+
+      <section id="fonts">
+        <h2>Fonts</h2>
+        <p class="hint" style="margin-bottom:1rem;">
+          Each slot is either one of Reeltone's four built-in faces, or a
+          <code>.ttf</code>/<code>.otf</code> you upload. Uploaded fonts have
+          their PostScript name read straight out of the file — the field is
+          auto-filled and read-only, so a mistyped name (the format's most
+          common failure) can't happen here.
+        </p>
+        <div id="font-fields"></div>
+      </section>
+
+      <section id="export">
+        <h2>Export</h2>
+        <p>
+          Packages <code>skin.json</code> plus any uploaded font files into a
+          <code>.reeltone</code> zip, built by this page's own store-only ZIP
+          writer — the same code path verified against Reeltone's real
+          importer (see the implementation notes in
+          <a href="format.html">the format reference</a>).
+        </p>
+        <div class="export-row">
+          <button id="export-button" type="button">Export .reeltone</button>
+          <span class="export-status" id="export-status"></span>
+        </div>
+        <p class="hint">Export is disabled until <code>id</code> is valid.</p>
+        <h3 style="font-family:var(--mono); font-size:0.85rem; color:var(--accent-strong); margin-top:1.5rem;">skin.json preview</h3>
+        <pre><code id="manifest-preview"></code></pre>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <p>
+    Part of <a href="https://github.com/iagocavalcante/jellytunes">Reeltone</a>.
+    See <a href="../skins.html">the skin workshop</a> and
+    <a href="format.html">the format reference</a> for the full spec,
+    including sprites, which this editor doesn't cover.
+  </p>
+</footer>
+
+<!--
+  ============================================================================
+  CORE LOGIC — pure functions, no DOM access anywhere in this block.
+
+  This script is deliberately self-contained and DOM-free so the exact same
+  code that runs in the browser can be extracted and run under Node for
+  verification (see the project's skin-editor test harness): a small harness
+  pulls the text of the tag with id="core-logic" out of this file, evaluates
+  it with a `module.exports` shim, and calls these functions directly with
+  bytes produced the same way the page produces them. That is the only way to
+  prove the ZIP writer below produces something Reeltone's real SkinImporter
+  (via ZIPFoundation) actually accepts, rather than something that merely
+  "looks like a zip".
+
+  Keep DOM/UI code out of this block. It goes in the second <script> below.
+  ============================================================================
+-->
+<script id="core-logic">
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------
+  // CRC-32 (ISO 3309 / zip's variant) — standard reflected table-driven
+  // implementation. Needed because store-only zip entries still carry a
+  // real CRC-32 of the uncompressed data in both the local file header and
+  // the central directory; unlike compressed size, this can't be skipped.
+  // ---------------------------------------------------------------------
+  const CRC32_TABLE = (function buildTable() {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) {
+        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      }
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc = CRC32_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // ---------------------------------------------------------------------
+  // Small growable little-endian byte writer. Zip multi-byte fields are all
+  // little-endian regardless of platform, per the spec.
+  // ---------------------------------------------------------------------
+  function concatBytes(chunks) {
+    let total = 0;
+    for (const c of chunks) total += c.length;
+    const out = new Uint8Array(total);
+    let pos = 0;
+    for (const c of chunks) { out.set(c, pos); pos += c.length; }
+    return out;
+  }
+
+  class ByteWriter {
+    constructor() { this.chunks = []; }
+    u16(value) {
+      this.chunks.push(Uint8Array.of(value & 0xFF, (value >>> 8) & 0xFF));
+      return this;
+    }
+    u32(value) {
+      this.chunks.push(Uint8Array.of(
+        value & 0xFF, (value >>> 8) & 0xFF, (value >>> 16) & 0xFF, (value >>> 24) & 0xFF
+      ));
+      return this;
+    }
+    bytes(arr) {
+      this.chunks.push(arr instanceof Uint8Array ? arr : new Uint8Array(arr));
+      return this;
+    }
+    toBytes() { return concatBytes(this.chunks); }
+  }
+
+  // DOS date/time fields the zip format still requires in every header, even
+  // though nothing in this app reads them back. Any valid-looking timestamp
+  // is fine — we use "now", clamped to 1980 (DOS has no earlier year).
+  function dosDateTime(date) {
+    const year = Math.max(1980, date.getFullYear());
+    const dosDate = ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+    const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | (Math.floor(date.getSeconds() / 2));
+    return { dosDate, dosTime };
+  }
+
+  /**
+   * Builds a store-only (uncompressed) zip archive from `entries`:
+   * [{ name: string, data: Uint8Array }, ...].
+   *
+   * Byte layout, three sections back to back — this is the whole zip format
+   * as far as this writer needs it (no deflate, no zip64, no data
+   * descriptors, no archive comment):
+   *
+   *   [local file header + file name + file data]   × N   (in entry order)
+   *   [central directory file header + file name]   × N   (one per entry)
+   *   [end of central directory record]              × 1
+   *
+   * Every entry's size and CRC-32 are known upfront (nothing is streamed),
+   * so they're written directly into the local file header rather than
+   * deferred to a trailing "data descriptor" — that's a concession for
+   * streaming writers we don't need here, and skipping it is exactly what
+   * keeps a reader like ZIPFoundation from needing to scan forward for it.
+   */
+  function buildZip(entries) {
+    const encoder = new TextEncoder();
+    const { dosDate, dosTime } = dosDateTime(new Date());
+
+    const localChunks = [];
+    const centralChunks = [];
+    let offset = 0;       // byte offset of the entry currently being written
+    let centralSize = 0;  // running total size of the central directory
+
+    for (const entry of entries) {
+      const nameBytes = encoder.encode(entry.name);
+      const data = entry.data;
+      const crc = crc32(data);
+
+      // --- Local file header: signature "PK\x03\x04" (0x04034b50 read as a
+      // little-endian u32), immediately followed by the raw file name bytes
+      // and then the raw (uncompressed) file data. 30 fixed bytes + name. ---
+      const local = new ByteWriter()
+        .u32(0x04034b50)          // local file header signature
+        .u16(20)                  // version needed to extract: 2.0
+        .u16(0x0800)              // general purpose bit flag — bit 11 (0x0800) = UTF-8 name/comment
+        .u16(0)                   // compression method: 0 = stored
+        .u16(dosTime)
+        .u16(dosDate)
+        .u32(crc)                 // CRC-32 of the uncompressed data
+        .u32(data.length)         // compressed size (== uncompressed, store-only)
+        .u32(data.length)         // uncompressed size
+        .u16(nameBytes.length)    // file name length
+        .u16(0)                   // extra field length
+        .bytes(nameBytes)
+        .bytes(data)
+        .toBytes();
+      localChunks.push(local);
+
+      // --- Central directory file header: signature "PK\x01\x02"
+      // (0x02014b50). One of these per entry, holding the same metadata as
+      // the local header plus the byte offset back to it — this is what
+      // lets a reader jump straight to any entry without scanning the whole
+      // archive linearly. 46 fixed bytes + name. ---
+      const central = new ByteWriter()
+        .u32(0x02014b50)          // central directory file header signature
+        .u16(20)                  // version made by (low byte 20 = spec 2.0; host OS byte 0 = MS-DOS-ish, unused by readers here)
+        .u16(20)                  // version needed to extract
+        .u16(0x0800)              // general purpose bit flag (UTF-8, same as local header)
+        .u16(0)                   // compression method: stored
+        .u16(dosTime)
+        .u16(dosDate)
+        .u32(crc)
+        .u32(data.length)
+        .u32(data.length)
+        .u16(nameBytes.length)
+        .u16(0)                   // extra field length
+        .u16(0)                   // file comment length
+        .u16(0)                   // disk number start
+        .u16(0)                   // internal file attributes
+        .u32(0)                   // external file attributes — no special unix perms needed
+        .u32(offset)              // byte offset of this entry's local file header, from archive start
+        .bytes(nameBytes)
+        .toBytes();
+      centralChunks.push(central);
+      centralSize += central.length;
+
+      offset += local.length;
+    }
+
+    const centralOffset = offset; // central directory starts right after the last local entry
+
+    // --- End of central directory record: signature "PK\x05\x06"
+    // (0x06054b50). Fixed 22 bytes, no comment. This is what a zip reader
+    // finds first (by scanning from the end of the file for the signature),
+    // then uses centralOffset/centralSize to jump to the central directory,
+    // then uses each central entry's offset to jump to its local header. ---
+    const eocd = new ByteWriter()
+      .u32(0x06054b50)
+      .u16(0)                     // number of this disk
+      .u16(0)                     // disk where central directory starts
+      .u16(entries.length)        // central directory records on this disk
+      .u16(entries.length)        // total central directory records
+      .u32(centralSize)           // size of the central directory, in bytes
+      .u32(centralOffset)         // offset of start of central directory, from archive start
+      .u16(0)                     // comment length
+      .toBytes();
+
+    return concatBytes([...localChunks, ...centralChunks, eocd]);
+  }
+
+  // ---------------------------------------------------------------------
+  // sfnt `name` table parser — extracts nameID 6 (PostScript name) from a
+  // TrueType (.ttf) or CFF-flavoured OpenType (.otf) font, given its raw
+  // bytes as an ArrayBuffer.
+  //
+  // sfnt layout relevant here (all multi-byte fields big-endian):
+  //   offset 0:  version tag (4 bytes) — 0x00010000 for TrueType, or the
+  //              literal ASCII "OTTO" for CFF-flavoured OpenType. Both are
+  //              parsed identically past this point; only the tag differs.
+  //   offset 4:  numTables (uint16)
+  //   offset 12: table directory — numTables records of 16 bytes each:
+  //              tag (4 bytes ASCII) + checksum (uint32) + offset (uint32)
+  //              + length (uint32). `offset` here is from the start of the
+  //              whole font file, not relative to anything else.
+  //
+  // Within the `name` table itself (offset given by the table directory
+  // record whose tag is "name"), fields are relative to that table's own
+  // start:
+  //   +0: format (uint16)
+  //   +2: count (uint16) — number of name records that follow
+  //   +4: stringOffset (uint16) — where the actual string data starts,
+  //       relative to the table's start
+  //   +6: `count` name records, 12 bytes each: platformID, encodingID,
+  //       languageID, nameID (all uint16), then length (uint16) and offset
+  //       (uint16) — the latter two describing where in the string storage
+  //       (tableStart + stringOffset + record.offset, for `record.length`
+  //       bytes) this particular string's bytes live.
+  //
+  // nameID 6 is the PostScript name. Multiple records can carry it (one per
+  // platform/encoding/language); platform 3 (Windows, Unicode BMP, UTF-16BE)
+  // is preferred when present, with platform 1 (Macintosh, effectively
+  // single-byte/ASCII for the names we care about) as a fallback.
+  // ---------------------------------------------------------------------
+
+  const SFNT_TRUETYPE = 0x00010000;
+  const SFNT_OTTO = 0x4F54544F;   // "OTTO"
+  const SFNT_TTCF = 0x74746366;   // "ttcf" — font collection, unsupported
+  const SFNT_WOFF = 0x774F4646;   // "wOFF"
+  const SFNT_WOFF2 = 0x774F4632;  // "wOF2"
+
+  function decodeUTF16BE(bytes) {
+    let s = "";
+    for (let i = 0; i + 1 < bytes.length; i += 2) {
+      s += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
+    }
+    return s;
+  }
+
+  // PostScript names are ASCII-safe by spec, so a plain byte-to-charCode
+  // decode is sufficient for the Macintosh (platform 1) fallback — no need
+  // for a real Mac Roman table.
+  function decodeMacRoman(bytes) {
+    let s = "";
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return s;
+  }
+
+  function readTag(view, offset) {
+    return decodeMacRoman(new Uint8Array(view.buffer, view.byteOffset + offset, 4));
+  }
+
+  /**
+   * Parses `arrayBuffer` as a font file and returns its PostScript name
+   * (nameID 6). Throws an Error with a clear, user-facing message for
+   * unsupported/malformed input — font collections and WOFF/WOFF2 are
+   * rejected outright rather than guessed at.
+   */
+  function parseFontPostScriptName(arrayBuffer) {
+    if (arrayBuffer.byteLength < 12) {
+      throw new Error("File is too small to be a font.");
+    }
+    const view = new DataView(arrayBuffer);
+    const versionTag = view.getUint32(0, false);
+
+    if (versionTag === SFNT_TTCF) {
+      throw new Error("Font collections (.ttc) aren't supported — upload a single .ttf/.otf file.");
+    }
+    if (versionTag === SFNT_WOFF) {
+      throw new Error("WOFF fonts aren't supported — upload the original .ttf/.otf file, not a WOFF conversion.");
+    }
+    if (versionTag === SFNT_WOFF2) {
+      throw new Error("WOFF2 fonts aren't supported — upload the original .ttf/.otf file, not a WOFF2 conversion.");
+    }
+    if (versionTag !== SFNT_TRUETYPE && versionTag !== SFNT_OTTO) {
+      throw new Error("Unrecognized font file — expected a TrueType (.ttf) or OpenType (.otf) font.");
+    }
+
+    const numTables = view.getUint16(4, false);
+    let nameTableOffset = null;
+    for (let i = 0; i < numTables; i++) {
+      const recordOffset = 12 + i * 16;
+      if (readTag(view, recordOffset) === "name") {
+        nameTableOffset = view.getUint32(recordOffset + 8, false);
+        break;
+      }
+    }
+    if (nameTableOffset === null) {
+      throw new Error("This font has no 'name' table — can't read its PostScript name.");
+    }
+
+    const count = view.getUint16(nameTableOffset + 2, false);
+    const stringAreaStart = nameTableOffset + view.getUint16(nameTableOffset + 4, false);
+
+    let platform3Name = null;
+    let platform1Name = null;
+    for (let i = 0; i < count; i++) {
+      const recordOffset = nameTableOffset + 6 + i * 12;
+      const platformID = view.getUint16(recordOffset, false);
+      const nameID = view.getUint16(recordOffset + 6, false);
+      const length = view.getUint16(recordOffset + 8, false);
+      const strOffset = view.getUint16(recordOffset + 10, false);
+      if (nameID !== 6) continue; // 6 = PostScript name
+
+      const strBytes = new Uint8Array(arrayBuffer, stringAreaStart + strOffset, length);
+      if (platformID === 3 && platform3Name === null) {
+        platform3Name = decodeUTF16BE(strBytes);
+      } else if (platformID === 1 && platform1Name === null) {
+        platform1Name = decodeMacRoman(strBytes);
+      }
+    }
+
+    const postScriptName = platform3Name || platform1Name;
+    if (!postScriptName) {
+      throw new Error("This font's 'name' table has no PostScript name (nameID 6) record.");
+    }
+    return postScriptName;
+  }
+
+  // ---------------------------------------------------------------------
+  // Color parsing/formatting — mirrors SkinColor.parse / SkinColor.hexString
+  // in JellyTunes/UI/Theme/SkinColorParsing.swift exactly: only #RRGGBB or
+  // #RRGGBBAA (6 or 8 hex digits after '#'), no 3-digit shorthand.
+  // ---------------------------------------------------------------------
+
+  function parseSkinColor(hex) {
+    if (typeof hex !== "string" || hex.charAt(0) !== "#") {
+      throw new Error(`malformed color: ${hex}`);
+    }
+    const digits = hex.slice(1);
+    if (!(digits.length === 6 || digits.length === 8) || !/^[0-9a-fA-F]+$/.test(digits)) {
+      throw new Error(`malformed color: ${hex}`);
+    }
+    const bytePairs = digits.match(/.{2}/g).map((pair) => parseInt(pair, 16));
+    const [r, g, b, a] = digits.length === 8 ? bytePairs : [...bytePairs, 255];
+    return { r: r / 255, g: g / 255, b: b / 255, a: a / 255 };
+  }
+
+  function clamp01(x) { return Math.min(1, Math.max(0, x)); }
+
+  function byteHex(component) {
+    const byte = Math.round(clamp01(component) * 255);
+    const s = byte.toString(16).toUpperCase();
+    return s.length === 1 ? "0" + s : s;
+  }
+
+  // #RRGGBB, widening to #RRGGBBAA only when alpha isn't fully opaque —
+  // matches SkinColor.hexString's rule exactly, so a value round-trips to
+  // the same string shape the app itself would produce.
+  function skinColorToHex(color) {
+    const rgb = byteHex(color.r) + byteHex(color.g) + byteHex(color.b);
+    if (color.a === undefined || color.a >= 1) return "#" + rgb;
+    return "#" + rgb + byteHex(color.a);
+  }
+
+  // ---------------------------------------------------------------------
+  // WCAG contrast — mirrors SkinContrast.swift exactly (piecewise sRGB
+  // linearization, then the standard relative-luminance contrast ratio).
+  // ---------------------------------------------------------------------
+
+  const CONTRAST_RECOMMENDED_MINIMUM = 4.5;
+
+  function linearizeChannel(c) {
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+
+  function relativeLuminance(color) {
+    return 0.2126 * linearizeChannel(color.r)
+      + 0.7152 * linearizeChannel(color.g)
+      + 0.0722 * linearizeChannel(color.b);
+  }
+
+  function contrastRatio(colorA, colorB) {
+    const la = relativeLuminance(colorA);
+    const lb = relativeLuminance(colorB);
+    const lighter = Math.max(la, lb);
+    const darker = Math.min(la, lb);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // ---------------------------------------------------------------------
+  // `inkDim`'s derive-vs-override rule — mirrors
+  // SkinManifest.makeSkin(resourceDirectory:) in SkinManifest.swift exactly:
+  // when a skin omits colors.inkDim, the app derives it from *that skin's
+  // own resolved ink* at 35% opacity, NOT from the built-in theme's dim
+  // value. So deriving here must read the *current* ink field, not a fixed
+  // constant — a skin that recolors ink but leaves inkDim on "derive
+  // automatically" must see its dim value follow the new ink color.
+  // ---------------------------------------------------------------------
+  function deriveInkDim(ink) {
+    return { r: ink.r, g: ink.g, b: ink.b, a: 0.35 };
+  }
+
+  // ---------------------------------------------------------------------
+  // Manifest assembly — turns editor state into the exact JSON shape
+  // SkinManifest.swift decodes. Only formatVersion/id/name are unconditional;
+  // everything else is included only when the corresponding field has a
+  // value, matching the format's "omitted falls back to built-in" contract.
+  //
+  // `state` shape:
+  //   {
+  //     id, name, author, version, license: strings (author/version/license
+  //       may be empty, meaning "omit"),
+  //     colors: { screen, ink, inkDim, panel, panelText }: hex strings,
+  //     inkDimAuto: bool — when true, colors.inkDim is NOT written even if
+  //       present, because "derive automatically" means the app should
+  //       compute it itself at import time (see deriveInkDim above for what
+  //       that computation is, used only to drive the live preview),
+  //     fonts: { display, digits, body, bodyBold } each either
+  //       null (omit slot — falls back to built-in for that slot) or
+  //       { type: 'builtin', postScriptName } or
+  //       { type: 'file', fileName, postScriptName }
+  //   }
+  // ---------------------------------------------------------------------
+  function buildManifest(state) {
+    const manifest = {
+      formatVersion: 1,
+      id: state.id,
+      name: state.name,
+    };
+    if (state.author) manifest.author = state.author;
+    if (state.version) manifest.version = state.version;
+    if (state.license) manifest.license = state.license;
+
+    const colors = {};
+    if (state.colors.screen) colors.screen = state.colors.screen;
+    if (state.colors.ink) colors.ink = state.colors.ink;
+    if (!state.inkDimAuto && state.colors.inkDim) colors.inkDim = state.colors.inkDim;
+    if (state.colors.panel) colors.panel = state.colors.panel;
+    if (state.colors.panelText) colors.panelText = state.colors.panelText;
+    if (Object.keys(colors).length > 0) manifest.colors = colors;
+
+    const fonts = {};
+    for (const slot of ["display", "digits", "body", "bodyBold"]) {
+      const f = state.fonts[slot];
+      if (!f) continue;
+      if (f.type === "builtin") {
+        fonts[slot] = { builtin: f.postScriptName };
+      } else if (f.type === "file") {
+        fonts[slot] = { file: f.fileName, postScriptName: f.postScriptName };
+      }
+    }
+    if (Object.keys(fonts).length > 0) manifest.fonts = fonts;
+
+    return manifest;
+  }
+
+  // Same rule as SkinImporter.isSafeSkinID (private static in
+  // JellyTunes/UI/Theme/SkinImporter.swift) — id becomes a single path
+  // component on install, so it can't be empty, ".", "..", or contain a
+  // path separator.
+  function isSafeSkinID(id) {
+    return typeof id === "string" && id.length > 0
+      && id !== "." && id !== ".."
+      && !id.includes("/") && !id.includes("\\");
+  }
+
+  const SkinEditorCore = {
+    crc32,
+    buildZip,
+    parseFontPostScriptName,
+    parseSkinColor,
+    skinColorToHex,
+    contrastRatio,
+    relativeLuminance,
+    linearizeChannel,
+    deriveInkDim,
+    buildManifest,
+    isSafeSkinID,
+    CONTRAST_RECOMMENDED_MINIMUM,
+  };
+
+  // Browser: expose as a global so the UI-wiring script below can use it.
+  if (typeof window !== "undefined") {
+    window.SkinEditorCore = SkinEditorCore;
+  }
+  // Node (verification harness only — never loaded this way in the browser):
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = SkinEditorCore;
+  }
+})();
+</script>
+
+<!--
+  ============================================================================
+  UI WIRING — DOM access, event listeners, live preview. Everything in here
+  is glue around SkinEditorCore above; no zip/font/color/contrast maths lives
+  in this block.
+  ============================================================================
+-->
+<script>
+(function () {
+  "use strict";
+  const Core = window.SkinEditorCore;
+
+  const BUILTIN_FONTS = {
+    display: "DSEG14Classic-Regular",
+    digits: "DSEG7Classic-Regular",
+    body: "Silkscreen-Regular",
+    bodyBold: "Silkscreen-Bold",
+  };
+  const FONT_SLOTS = ["display", "digits", "body", "bodyBold"];
+  const FONT_SLOT_LABELS = {
+    display: "display — segment headings",
+    digits: "digits — numeric readouts",
+    body: "body — list text",
+    bodyBold: "bodyBold — emphasized body text",
+  };
+
+  // Seeded from Skin.builtInLCD (JellyTunes/UI/Theme/Skin.swift) so the
+  // editor opens on something already valid and importable as-is.
+  const state = {
+    id: "com.example.myskin",
+    name: "My Skin",
+    author: "",
+    version: "",
+    license: "",
+    colors: {
+      screen: "#A9BE8E",
+      ink: "#0B0B0B",
+      inkDim: "#0B0B0B59", // display-only when inkDimAuto is true; see render()
+      panel: "#000000",
+      panelText: "#A9BE8E",
+    },
+    inkDimAuto: true,
+    fonts: {
+      display: { type: "builtin", postScriptName: BUILTIN_FONTS.display },
+      digits: { type: "builtin", postScriptName: BUILTIN_FONTS.digits },
+      body: { type: "builtin", postScriptName: BUILTIN_FONTS.body },
+      bodyBold: { type: "builtin", postScriptName: BUILTIN_FONTS.bodyBold },
+    },
+  };
+
+  // Raw bytes for uploaded font files, keyed by slot — kept out of `state`
+  // proper since it's binary data the manifest/JSON preview never touches
+  // directly, only `state.fonts[slot].fileName`/`postScriptName` do.
+  const uploadedFontBytes = {};
+
+  // ------------------------------------------------------------------
+  // Color fields
+  // ------------------------------------------------------------------
+  const COLOR_FIELDS = [
+    { key: "screen", label: "screen — LCD background" },
+    { key: "ink", label: "ink — primary foreground" },
+    { key: "panel", label: "panel — chrome outside the screen" },
+    { key: "panelText", label: "panelText — foreground on panel" },
+  ];
+
+  const colorFieldsContainer = document.getElementById("color-fields");
+
+  function buildColorFieldRow({ key, label }) {
+    const row = document.createElement("div");
+    row.className = "field-row";
+    row.innerHTML = `
+      <label for="f-color-${key}">${label}</label>
+      <div class="color-field">
+        <input type="color" id="f-color-${key}-picker">
+        <input type="text" id="f-color-${key}" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <span class="error-text" id="f-color-${key}-error" hidden></span>
+    `;
+    colorFieldsContainer.appendChild(row);
+
+    const textInput = row.querySelector(`#f-color-${key}`);
+    const pickerInput = row.querySelector(`#f-color-${key}-picker`);
+    const errorEl = row.querySelector(`#f-color-${key}-error`);
+
+    textInput.value = state.colors[key];
+    syncPickerFromText();
+
+    function syncPickerFromText() {
+      try {
+        const c = Core.parseSkinColor(textInput.value);
+        pickerInput.value = "#" + [c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("");
+        errorEl.hidden = true;
+        textInput.classList.remove("invalid");
+        return true;
+      } catch (e) {
+        errorEl.hidden = false;
+        errorEl.textContent = e.message;
+        textInput.classList.add("invalid");
+        return false;
+      }
+    }
+
+    textInput.addEventListener("input", () => {
+      if (syncPickerFromText()) {
+        state.colors[key] = textInput.value;
+        render();
+      }
+    });
+
+    pickerInput.addEventListener("input", () => {
+      // Native color inputs only carry RGB — preserve whatever alpha suffix
+      // the hex field already had (an 8-digit value stays 8-digit).
+      const existing = (() => {
+        try { return Core.parseSkinColor(textInput.value); } catch { return { a: 1 }; }
+      })();
+      const rgbHex = pickerInput.value.slice(1).toUpperCase();
+      const alphaSuffix = existing.a < 1
+        ? Math.round(existing.a * 255).toString(16).toUpperCase().padStart(2, "0")
+        : "";
+      textInput.value = "#" + rgbHex + alphaSuffix;
+      state.colors[key] = textInput.value;
+      textInput.classList.remove("invalid");
+      errorEl.hidden = true;
+      render();
+    });
+  }
+
+  COLOR_FIELDS.forEach(buildColorFieldRow);
+
+  // inkDim gets its own row: an auto-derive checkbox plus the hex pair,
+  // disabled while auto-derive is on. This is the one field whose fallback
+  // isn't the built-in theme's value but this skin's own `ink` — see
+  // Core.deriveInkDim's doc comment.
+  const inkDimRow = document.createElement("div");
+  inkDimRow.className = "field-row";
+  inkDimRow.innerHTML = `
+    <label for="f-color-inkDim">inkDim — de-emphasized foreground</label>
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-inkdim-auto" checked>
+      <label for="f-inkdim-auto">Derive automatically (ink @ 35% opacity)</label>
+    </div>
+    <div class="color-field">
+      <input type="color" id="f-color-inkDim-picker" disabled>
+      <input type="text" id="f-color-inkDim" autocapitalize="off" autocorrect="off" spellcheck="false" disabled>
+    </div>
+    <span class="error-text" id="f-color-inkDim-error" hidden></span>
+    <span class="derived-note" id="inkdim-derived-note"></span>
+  `;
+  colorFieldsContainer.appendChild(inkDimRow);
+
+  const inkDimAutoCheckbox = document.getElementById("f-inkdim-auto");
+  const inkDimText = document.getElementById("f-color-inkDim");
+  const inkDimPicker = document.getElementById("f-color-inkDim-picker");
+  const inkDimError = document.getElementById("f-color-inkDim-error");
+  const inkDimDerivedNote = document.getElementById("inkdim-derived-note");
+
+  function currentDerivedInkDimHex() {
+    const ink = Core.parseSkinColor(state.colors.ink);
+    return Core.skinColorToHex(Core.deriveInkDim(ink));
+  }
+
+  inkDimAutoCheckbox.addEventListener("change", () => {
+    state.inkDimAuto = inkDimAutoCheckbox.checked;
+    inkDimText.disabled = state.inkDimAuto;
+    inkDimPicker.disabled = state.inkDimAuto;
+    if (!state.inkDimAuto) {
+      // Seed the override field with the current derived value so unchecking
+      // the box doesn't jump to some unrelated stale value.
+      state.colors.inkDim = currentDerivedInkDimHex();
+      inkDimText.value = state.colors.inkDim;
+    }
+    render();
+  });
+
+  function syncInkDimPickerFromText() {
+    try {
+      const c = Core.parseSkinColor(inkDimText.value);
+      inkDimPicker.value = "#" + [c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("");
+      inkDimError.hidden = true;
+      inkDimText.classList.remove("invalid");
+      return true;
+    } catch (e) {
+      inkDimError.hidden = false;
+      inkDimError.textContent = e.message;
+      inkDimText.classList.add("invalid");
+      return false;
+    }
+  }
+
+  inkDimText.addEventListener("input", () => {
+    if (syncInkDimPickerFromText()) {
+      state.colors.inkDim = inkDimText.value;
+      render();
+    }
+  });
+
+  inkDimPicker.addEventListener("input", () => {
+    const existing = (() => {
+      try { return Core.parseSkinColor(inkDimText.value); } catch { return { a: 1 }; }
+    })();
+    const rgbHex = inkDimPicker.value.slice(1).toUpperCase();
+    const alphaSuffix = existing.a < 1
+      ? Math.round(existing.a * 255).toString(16).toUpperCase().padStart(2, "0")
+      : "";
+    inkDimText.value = "#" + rgbHex + alphaSuffix;
+    state.colors.inkDim = inkDimText.value;
+    render();
+  });
+
+  // ------------------------------------------------------------------
+  // Font fields
+  // ------------------------------------------------------------------
+  const fontFieldsContainer = document.getElementById("font-fields");
+  let uploadedFontFaceCounter = 0;
+
+  function buildFontSlot(slot) {
+    const wrap = document.createElement("div");
+    wrap.className = "font-slot";
+    wrap.innerHTML = `
+      <h3>${FONT_SLOT_LABELS[slot]}</h3>
+      <div class="font-slot-choice">
+        <label><input type="radio" name="font-${slot}-choice" value="builtin" checked> Built-in</label>
+        <label><input type="radio" name="font-${slot}-choice" value="file"> Upload file</label>
+      </div>
+      <select id="f-font-${slot}-builtin">
+        ${Object.entries(BUILTIN_FONTS).map(([k, v]) => `<option value="${v}"${v === BUILTIN_FONTS[slot] ? " selected" : ""}>${v}</option>`).join("")}
+      </select>
+      <input type="file" id="f-font-${slot}-file" accept=".ttf,.otf" hidden>
+      <div id="f-font-${slot}-upload-ui" hidden>
+        <button type="button" id="f-font-${slot}-upload-button">Choose font file…</button>
+        <div class="psname-readout" id="f-font-${slot}-psname"></div>
+        <div class="error-text" id="f-font-${slot}-error" hidden></div>
+      </div>
+    `;
+    fontFieldsContainer.appendChild(wrap);
+
+    const builtinSelect = wrap.querySelector(`#f-font-${slot}-builtin`);
+    const fileInput = wrap.querySelector(`#f-font-${slot}-file`);
+    const uploadUI = wrap.querySelector(`#f-font-${slot}-upload-ui`);
+    const uploadButton = wrap.querySelector(`#f-font-${slot}-upload-button`);
+    const psNameEl = wrap.querySelector(`#f-font-${slot}-psname`);
+    const errorEl = wrap.querySelector(`#f-font-${slot}-error`);
+    const radios = wrap.querySelectorAll(`input[name="font-${slot}-choice"]`);
+
+    radios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        if (radio.value === "builtin" && radio.checked) {
+          builtinSelect.hidden = false;
+          uploadUI.hidden = true;
+          state.fonts[slot] = { type: "builtin", postScriptName: builtinSelect.value };
+          render();
+        } else if (radio.value === "file" && radio.checked) {
+          builtinSelect.hidden = true;
+          uploadUI.hidden = false;
+          // No file chosen yet this session for this slot — the manifest
+          // slot stays whatever it last validly was until a file is picked.
+        }
+      });
+    });
+
+    builtinSelect.addEventListener("change", () => {
+      state.fonts[slot] = { type: "builtin", postScriptName: builtinSelect.value };
+      applyFontFamilyVar(slot, builtinSelect.value);
+      render();
+    });
+
+    uploadButton.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      errorEl.hidden = true;
+      psNameEl.textContent = "Reading font…";
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const postScriptName = Core.parseFontPostScriptName(arrayBuffer);
+        uploadedFontBytes[slot] = new Uint8Array(arrayBuffer);
+        state.fonts[slot] = { type: "file", fileName: file.name, postScriptName };
+        psNameEl.textContent = `PostScript name (auto-detected, read-only): ${postScriptName}`;
+
+        // Register the real uploaded font so the preview renders it, not a
+        // system-font stand-in.
+        const familyName = `SkinEditorUploaded-${slot}-${++uploadedFontFaceCounter}`;
+        const fontFace = new FontFace(familyName, arrayBuffer);
+        await fontFace.load();
+        document.fonts.add(fontFace);
+        applyFontFamilyVar(slot, familyName);
+        render();
+      } catch (e) {
+        psNameEl.textContent = "";
+        errorEl.hidden = false;
+        errorEl.textContent = e.message;
+        delete uploadedFontBytes[slot];
+      }
+    });
+  }
+
+  const PREVIEW_VAR_BY_SLOT = {
+    display: "--pv-font-display",
+    digits: "--pv-font-digits",
+    body: "--pv-font-body",
+    bodyBold: "--pv-font-body-bold",
+  };
+
+  function applyFontFamilyVar(slot, familyName) {
+    document.documentElement.style.setProperty(PREVIEW_VAR_BY_SLOT[slot], `'${familyName}'`);
+  }
+
+  FONT_SLOTS.forEach(buildFontSlot);
+  FONT_SLOTS.forEach((slot) => applyFontFamilyVar(slot, BUILTIN_FONTS[slot]));
+
+  // ------------------------------------------------------------------
+  // Metadata fields
+  // ------------------------------------------------------------------
+  const idInput = document.getElementById("f-id");
+  const idError = document.getElementById("f-id-error");
+  const nameInput = document.getElementById("f-name");
+  const authorInput = document.getElementById("f-author");
+  const versionInput = document.getElementById("f-version");
+  const licenseInput = document.getElementById("f-license");
+
+  idInput.value = state.id;
+  nameInput.value = state.name;
+
+  idInput.addEventListener("input", () => { state.id = idInput.value; render(); });
+  nameInput.addEventListener("input", () => { state.name = nameInput.value; render(); });
+  authorInput.addEventListener("input", () => { state.author = authorInput.value; render(); });
+  versionInput.addEventListener("input", () => { state.version = versionInput.value; render(); });
+  licenseInput.addEventListener("input", () => { state.license = licenseInput.value; render(); });
+
+  // ------------------------------------------------------------------
+  // Live preview + contrast + manifest JSON + export
+  // ------------------------------------------------------------------
+  const root = document.documentElement.style;
+  const contrastReadout = document.getElementById("contrast-readout");
+  const contrastRatioEl = document.getElementById("contrast-ratio");
+  const contrastVerdictEl = document.getElementById("contrast-verdict");
+  const manifestPreviewEl = document.getElementById("manifest-preview");
+  const exportButton = document.getElementById("export-button");
+  const exportStatus = document.getElementById("export-status");
+
+  function render() {
+    // --- id validation ---
+    const idValid = Core.isSafeSkinID(state.id);
+    if (idValid) {
+      idInput.classList.remove("invalid");
+      idError.hidden = true;
+    } else {
+      idInput.classList.add("invalid");
+      idError.hidden = false;
+      idError.textContent = state.id.length === 0
+        ? "id can't be empty."
+        : "id can't be \".\", \"..\", or contain \"/\" or \"\\\".";
+    }
+    exportButton.disabled = !idValid;
+
+    // --- preview CSS variables ---
+    root.setProperty("--pv-screen", state.colors.screen);
+    root.setProperty("--pv-ink", state.colors.ink);
+    root.setProperty("--pv-panel", state.colors.panel);
+    root.setProperty("--pv-panel-text", state.colors.panelText);
+
+    let inkColor, inkDimColor, inkDimHexForDisplay;
+    try {
+      inkColor = Core.parseSkinColor(state.colors.ink);
+    } catch {
+      inkColor = { r: 0, g: 0, b: 0, a: 1 };
+    }
+    if (state.inkDimAuto) {
+      inkDimColor = Core.deriveInkDim(inkColor);
+      inkDimHexForDisplay = Core.skinColorToHex(inkDimColor);
+      inkDimDerivedNote.textContent = `Derived: ${inkDimHexForDisplay} (not written to skin.json — the app computes this itself from ink)`;
+    } else {
+      try {
+        inkDimColor = Core.parseSkinColor(state.colors.inkDim);
+      } catch {
+        inkDimColor = Core.deriveInkDim(inkColor);
+      }
+      inkDimDerivedNote.textContent = "";
+    }
+    root.setProperty("--pv-ink-dim", `rgba(${Math.round(inkDimColor.r * 255)}, ${Math.round(inkDimColor.g * 255)}, ${Math.round(inkDimColor.b * 255)}, ${inkDimColor.a})`);
+
+    // --- contrast readout (ink vs screen, same as SkinContrast.swift) ---
+    try {
+      const screenColor = Core.parseSkinColor(state.colors.screen);
+      const ratio = Core.contrastRatio(inkColor, screenColor);
+      contrastRatioEl.textContent = `${ratio.toFixed(2)}:1`;
+      const passes = ratio >= Core.CONTRAST_RECOMMENDED_MINIMUM;
+      contrastReadout.classList.toggle("pass", passes);
+      contrastReadout.classList.toggle("warn", !passes);
+      contrastVerdictEl.textContent = passes
+        ? "ink : screen — meets the 4.5:1 WCAG minimum"
+        : "ink : screen — below the 4.5:1 WCAG minimum (still importable, just warned)";
+    } catch {
+      contrastRatioEl.textContent = "—";
+      contrastVerdictEl.textContent = "ink : screen contrast";
+    }
+
+    // --- manifest JSON preview ---
+    const manifest = Core.buildManifest(state);
+    manifestPreviewEl.textContent = JSON.stringify(manifest, null, 2);
+
+    exportStatus.textContent = "";
+    exportStatus.className = "export-status";
+  }
+
+  render();
+
+  // ------------------------------------------------------------------
+  // Export: assemble skin.json + any uploaded font bytes, zip them with
+  // SkinEditorCore.buildZip, and trigger a download named "<id>.reeltone".
+  // ------------------------------------------------------------------
+  exportButton.addEventListener("click", () => {
+    if (!Core.isSafeSkinID(state.id)) return;
+    try {
+      const manifest = Core.buildManifest(state);
+      const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest, null, 2));
+
+      const entries = [{ name: "skin.json", data: manifestBytes }];
+      // De-dupe by filename in case two slots happen to reference the same
+      // uploaded file name — same rule SkinManifest.fileFontURLs uses.
+      const seenFileNames = new Set();
+      for (const slot of FONT_SLOTS) {
+        const f = state.fonts[slot];
+        if (f && f.type === "file" && uploadedFontBytes[slot] && !seenFileNames.has(f.fileName)) {
+          seenFileNames.add(f.fileName);
+          entries.push({ name: f.fileName, data: uploadedFontBytes[slot] });
+        }
+      }
+
+      const zipBytes = Core.buildZip(entries);
+      const blob = new Blob([zipBytes], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${state.id}.reeltone`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+      exportStatus.textContent = `Exported ${state.id}.reeltone (${zipBytes.length} bytes).`;
+      exportStatus.className = "export-status ok";
+    } catch (e) {
+      exportStatus.textContent = `Export failed: ${e.message}`;
+      exportStatus.className = "export-status err";
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
