@@ -22,7 +22,7 @@
   </nav>
 </header>
 
-<p class="updated">Last updated: 20 July 2026</p>
+<p class="updated">Last updated: 22 September 2026</p>
 
 <p>Reeltone is a music player for your own <a href="https://jellyfin.org">Jellyfin</a>
 media server. It is designed to collect nothing about you. We (the developer)
@@ -34,7 +34,7 @@ no analytics, no advertising, and no tracking.</p>
 <ul>
   <li><strong>Your server address and login token</strong> — saved in the system Keychain so you stay signed in. Used only to talk to your Jellyfin server.</li>
   <li><strong>A cache of your library</strong> (names and artwork) — so browsing is fast and works offline.</li>
-  <li><strong>Downloaded music</strong> — files you choose to download, kept in the app's private storage.</li>
+  <li><strong>Downloaded music and lyrics</strong> — audio files you choose to download and available lyrics, kept in the app's private storage for offline playback.</li>
   <li><strong>Installed skins</strong> — theme packages you choose to import, kept locally for Reeltone to display.</li>
 </ul>
 <p>None of this is transmitted to us. Deleting the app removes all of it.</p>
@@ -42,7 +42,7 @@ no analytics, no advertising, and no tracking.</p>
 <h2>Who the app talks to</h2>
 <ul>
   <li><strong>Your Jellyfin server.</strong> All browsing, streaming, and playback happen against the server address you enter. Playback progress is reported back to <em>your</em> server (standard Jellyfin behavior) — your data on your server.</li>
-  <li><strong>LRCLIB (lrclib.net), only for lyrics, only as a fallback.</strong> When you open lyrics and your server has none, the app asks the public LRCLIB service for matching lyrics using the track's <strong>title, artist, album, and duration</strong>. No account, no device identifier, nothing about <em>you</em> — only the song's metadata. If you never open lyrics, the app never contacts LRCLIB.</li>
+  <li><strong>LRCLIB (lrclib.net), only for lyrics, only as a fallback.</strong> When you view lyrics or save them with downloaded music and your server has none, the app asks the public LRCLIB service for matching lyrics using the track's <strong>title, artist, album, and duration</strong>. No account, no device identifier, nothing about <em>you</em> — only the song's metadata. Existing downloads may also fetch missing lyrics when the app is online. Saved lyrics can be read offline without contacting LRCLIB.</li>
 </ul>
 <p>The app contacts no other services.</p>
 
